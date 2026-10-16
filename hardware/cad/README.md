@@ -1,10 +1,19 @@
 # Camera/interposer fit model
 
-`generate_camera_assembly.FCMacro` imports the KiCad substrate STEP and adds
-separate populated-component groups plus a reconstructable Camera Module 3
-Standard autofocus-camera envelope from Raspberry Pi's mechanical drawing.
+`generate_camera_assembly.FCMacro` imports the KiCad substrate STEP, populated
+component groups, and the user-supplied Raspberry Pi Camera v3 model.
 `render_assembly.py` imports the resulting STL parts in Blender and writes top,
 stackup, translucent fit-check, and underside renders to `tmp/cad/`.
+
+The original 3MF and its converted STEP live in `hardware/cad/models/`.
+Regenerate the faceted STEP from the project copy with:
+
+```powershell
+& "C:\Program Files\FreeCAD 0.19\bin\FreeCADCmd.exe" -c hardware\cad\convert_camera_3mf.FCMacro
+```
+
+The conversion sews the 3MF facets into a closed solid before STEP export.
+The result is a faceted solid, not an editable native CAD model.
 
 From the repository root, regenerate the substrate STEP and run:
 
@@ -19,14 +28,13 @@ passives) with both KiCad 9 and 10 model-directory variables. It locates
 `kicad-cli` through the project helper and searches standard KiCad model paths;
 set `KICAD9_3DMODEL_DIR` or `KICAD10_3DMODEL_DIR` to override them.
 
-The reference is the [Raspberry Pi Camera Module 3 Standard mechanical
-drawing](https://datasheets.raspberrypi.com/camera/camera-module-3-standard-mechanical-drawing.pdf)
-(RP-008153-DS-1). The model follows its 25 x 23.862 x 1.12 mm PCB outline,
-four 2.2 mm mounting holes, 21 x 12.5 mm hole pitches, and 11.3 mm maximum
-camera-side envelope. The autofocus actuator/lens housing is a simplified
-clearance solid, not a vendor STEP model. Aligning its optical axis to the
-mechanical drawing while matching the interposer holes puts the axis 6.25 mm
-away from the current interposer aperture center. The fit-check render exposes
-this collision; the board aperture/keepout and routes need a design decision
-before the camera can be considered compatible. The FFC is illustrative and
-does not model its exact bend radius, contacts, or insertion.
+The supplied 3MF is titled `Raspberry Pi Camera v3`; its mesh measures
+25 x 24 mm in plan and places the lens axis at its XY origin. Its mounting
+holes appear at 20 x 12.5 mm pitch, with the pattern center 6.25 mm from the
+lens axis. The assembly aligns the model's 20 mm hole-pattern center to the
+interposer centerline and 12.5 mm rows to the existing holes; the interposer
+has 21 mm X pitch, leaving a 0.5 mm per-hole horizontal mismatch. Consequently
+the lens axis is 6.25 mm off the interposer aperture. The fit-check is a
+drawing/model-based comparison, not physical verification; confirm the
+camera's exact revision and mounting-hole dimensions before changing the
+routed board. The Raspberry Pi FFC path remains illustrative.

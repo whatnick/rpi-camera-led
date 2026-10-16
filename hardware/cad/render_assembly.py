@@ -138,7 +138,7 @@ camera.location = (32.5, -31.9, 145)
 target = Vector((32.5, -31.9, -2.0))
 camera.rotation_euler = (target - camera.location).to_track_quat("-Z", "Y").to_euler()
 camera_data.ortho_scale = 58
-scene.render.filepath = str(OUTPUT.with_name(OUTPUT.name + "-camera-module-3-fit-check.png"))
+scene.render.filepath = str(OUTPUT.with_name(OUTPUT.name + "-raspberry-pi-camera-v3-fit-check.png"))
 bpy.ops.render.render(write_still=True)
 
 camera.location = (70, -90, -45)

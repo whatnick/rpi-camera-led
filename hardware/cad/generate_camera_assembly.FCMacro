@@ -10,6 +10,7 @@ import Part
 ROOT = Path(__file__).resolve().parents[2]
 BOARD_STEP = ROOT / "tmp" / "manufacturing" / "rpi-camera-led-board.step"
 PCB = ROOT / "hardware" / "rpi-camera-led.kicad_pcb"
+CAMERA_STEP = ROOT / "hardware" / "cad" / "models" / "Raspberry Pi Camera v3.step"
 OUT = ROOT / "tmp" / "cad"
 OUT.mkdir(parents=True, exist_ok=True)
 STEP_DIR = OUT / "components"
@@ -89,76 +90,16 @@ for category, references in component_groups.items():
     component_objects.append(component)
 
 board_bottom = board_box.ZMin
-camera_top = board_bottom - 5.0
-camera_thickness = 1.12
-camera_bottom = camera_top - camera_thickness
+if not CAMERA_STEP.is_file():
+    raise FileNotFoundError(f"Camera STEP model not found: {CAMERA_STEP}")
 cx, cy = 32.5, -25.681
-camera_outline_width, camera_outline_height = 25.0, 23.862
-camera_left, camera_top_edge = 20.0, -16.319
-camera_bottom_edge = camera_top_edge - camera_outline_height
-holes = [(22.0, -25.681), (43.0, -25.681),
-         (22.0, -38.181), (43.0, -38.181)]
-
-camera_plate = Part.makeBox(
-    camera_outline_width,
-    camera_outline_height,
-    camera_thickness,
-    App.Vector(camera_left, camera_bottom_edge, camera_bottom),
-)
-vertical_edges = [
-    edge for edge in camera_plate.Edges
-    if edge.BoundBox.ZLength > camera_thickness - 0.01
-]
-camera_plate = camera_plate.makeFillet(1.5, vertical_edges)
-for x, y in holes:
-    bore = Part.makeCylinder(
-        1.1, camera_thickness + 0.2, App.Vector(x, y, camera_bottom - 0.1)
-    )
-    camera_plate = camera_plate.cut(bore)
+camera_shape = Part.read(str(CAMERA_STEP))
+camera_shape.rotate(App.Vector(0, 0, 0), App.Vector(0, 0, 1), 180)
+camera_shape.translate(App.Vector(cx, cy, board_bottom - 5.0))
 camera = doc.addObject("PartDesign::Feature", "CameraModule")
-camera.Label = "Camera Module 3 Standard PCB (25 x 23.862 x 1.12 mm)"
-camera.Shape = camera_plate
-
-actuator = doc.addObject("PartDesign::Feature", "AutofocusActuator")
-actuator.Label = "Camera Module 3 autofocus actuator envelope (10.8 mm square)"
-actuator.Shape = Part.makeBox(
-    10.8, 10.8, 3.875,
-    App.Vector(cx - 5.4, cy - 5.4, camera_top),
-)
-
-lens_holder = doc.addObject("PartDesign::Feature", "LensHolder")
-lens_holder.Label = "Camera Module 3 AF lens barrel envelope (OD 5.75 mm)"
-lens_holder.Shape = Part.makeCylinder(
-    2.875, 6.98, App.Vector(cx, cy, camera_top + 3.875)
-)
-
-lens_glass = doc.addObject("PartDesign::Feature", "LensGlass")
-lens_glass.Label = "Camera Module 3 AF front lens plane (approximate)"
-lens_glass.Shape = Part.makeCylinder(
-    2.65, 0.25, App.Vector(cx, cy, camera_top + 10.855)
-)
-
-camera_connector = doc.addObject("PartDesign::Feature", "CameraFFCConnector")
-camera_connector.Label = "Camera Module 3 FFC connector envelope (approximate)"
-camera_connector.Shape = Part.makeBox(
-    8.9, 3.3, 1.8,
-    App.Vector(14.4, camera_bottom_edge - 3.3, camera_bottom - 1.8),
-)
-
-for index, (x, y) in enumerate(holes, 1):
-    spacer_shape = Part.makeCylinder(1.6, 5.0, App.Vector(x, y, camera_top)).cut(
-        Part.makeCylinder(1.1, 5.2, App.Vector(x, y, camera_top - 0.1))
-    )
-    spacer = doc.addObject("PartDesign::Feature", f"Spacer{index}")
-    spacer.Label = f"M2 camera standoff {index} (approximate)"
-    spacer.Shape = spacer_shape
-
-camera_cable = doc.addObject("PartDesign::Feature", "CameraFFC")
-camera_cable.Label = "Camera Module 3 FFC stub (illustrative)"
-camera_cable.Shape = Part.makeBox(
-    15.0, 9.0, 0.3,
-    App.Vector(18.85 - 7.5, camera_bottom_edge - 12.3, camera_bottom - 2.1),
-)
+camera.Label = "Raspberry Pi Camera v3 (faceted 3MF-derived STEP)"
+camera.Shape = camera_shape
+print("Camera model bounds in assembly:", camera_shape.BoundBox)
 
 pi_cable = doc.addObject("PartDesign::Feature", "PiFFC")
 pi_cable.Label = "Raspberry Pi FFC path (illustrative)"
@@ -169,18 +110,12 @@ pi_cable.Shape = Part.makeBox(
 doc.recompute()
 doc.saveAs(str(OUT / "rpi-camera-led-assembly.FCStd"))
 Part.export(
-    [interposer, *component_objects, camera, actuator, lens_holder, lens_glass,
-     camera_connector]
-    + [doc.getObject(f"Spacer{i}") for i in range(1, 5)]
-    + [camera_cable, pi_cable],
+    [interposer, *component_objects, camera, pi_cable],
     str(OUT / "rpi-camera-led-assembly.step"),
 )
 
 objects = [
-    interposer, *component_objects, camera, actuator, lens_holder, lens_glass,
-    camera_connector,
-    *[doc.getObject(f"Spacer{i}") for i in range(1, 5)],
-    camera_cable, pi_cable,
+    interposer, *component_objects, camera, pi_cable,
 ]
 for obj in objects:
     mesh = MeshPart.meshFromShape(
