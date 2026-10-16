@@ -17,7 +17,7 @@ from pathlib import Path
 
 HW = Path(__file__).resolve().parent.parent
 SCH = HW / "rpi-camera-led.kicad_sch"
-KICAD_CLI = "/snap/bin/kicad.kicad-cli"
+from kicad_cli import KICAD_CLI
 
 # J1 and J2 are the same bottom-contact part wired pin-for-pin, so the board is
 # transparent to a standard same-side camera cable at both ends.  The two sit

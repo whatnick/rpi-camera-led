@@ -22,7 +22,7 @@ from pathlib import Path
 
 HW = Path(__file__).resolve().parent.parent
 PCB = HW / "rpi-camera-led.kicad_pcb"
-KICAD_CLI = "/snap/bin/kicad.kicad-cli"
+from kicad_cli import KICAD_CLI
 
 TOL = 0.001  # mm; anything above this is a real misalignment, not rounding
 

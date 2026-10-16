@@ -39,7 +39,7 @@ IMG = HW.parent / "docs" / "img"
 TMP = HW.parent / "tmp"
 SHAPES = HW / "rpi-camera-led.3dshapes"
 
-KICAD_CLI = "/snap/bin/kicad.kicad-cli"
+from kicad_cli import KICAD_CLI
 # kicad-cli does not inherit the GUI's path substitutions, so the models
 # resolve to nothing unless this is handed to it explicitly.
 MODEL_DIR = "/snap/kicad/current/usr/share/kicad/3dmodels"

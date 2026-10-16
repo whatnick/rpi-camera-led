@@ -181,3 +181,8 @@ Online](https://www.hqonline.com/)'s 600k+ in-stock inventory):
 ## License
 
 Apache 2.0 — see [LICENSE](LICENSE).
+
+## Manufacturing outputs
+
+Run `uv run hardware/tools/export_manufacturing.py` to write gerbers, drill files, positions, a JLCPCB-format BOM and `gerbers.zip` into `tmp/manufacturing/`. It lists every part still missing an LCSC number. kicad-cli is found automatically; set `KICAD_CLI` to override. See issue #1 for what remains before the board is orderable.
+
