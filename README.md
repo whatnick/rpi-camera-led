@@ -191,4 +191,11 @@ Apache 2.0 — see [LICENSE](LICENSE).
 
 ## Manufacturing outputs
 
-Run `uv run hardware/tools/export_manufacturing.py` to write Gerbers, drill files, positions, a JLCPCB-format BOM and `manufacturing.zip` into `tmp/manufacturing/`. It checks DRC before export and reports parts missing an LCSC number; the current board has DRC errors and unconnected items, so export is blocked by default. `--allow-incomplete` permits a review-only export and labels it `NOT_FOR_FABRICATION.txt`—do not send that package to a board house. `kicad-cli` is found automatically; set `KICAD_CLI` to override. See issue #1 for what remains before the board is orderable.
+Run `uv run hardware/tools/export_manufacturing.py` to write Gerbers, drill
+files, positions, sourced/JLCPCB BOMs and `manufacturing.zip` into
+`tmp/manufacturing/`. It checks DRC before export and reports parts missing an
+LCSC number; the current design passes DRC and the BOM has no missing LCSC
+codes. `--allow-incomplete` permits a review-only export and labels it
+`NOT_FOR_FABRICATION.txt`—never send that package to a board house.
+`kicad-cli` is found automatically; set `KICAD_CLI` to override. See issue #1
+for the remaining production qualification work.
