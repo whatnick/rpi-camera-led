@@ -21,8 +21,12 @@ levels or drive the camera-side signals.
 The routed interposer is 46.0 × 43.0 mm, two layers, with components on both
 sides. J1 faces the Raspberry Pi and J2 faces the camera; they are opposite
 edge-mounted so the two cable segments leave in line. The 11 mm lens aperture
-is centered over the camera lens, and the illumination LEDs sit around the
-aperture on the target-facing side.
+is centered on the intended camera optical axis, and the illumination LEDs sit
+around the aperture on the target-facing side. A drawing-based fit check for
+the Camera Module 3 Standard autofocus camera puts its optical axis 6.25 mm
+from this aperture when the mounting holes are aligned. Camera Module 3 fit is
+therefore not confirmed; the aperture, keepout, component placement, and routes
+may need redesign before it can be used.
 
 The four 2.2 mm mounting holes retain the Camera Module 2 pattern: 21.0 ×
 12.5 mm pitch, from the official mechanical drawing
@@ -68,10 +72,14 @@ lens, and FFCs are illustrative rather than vendor-accurate.
 
 | Populated interposer | Camera/interposer stackup concept |
 |:--------------------:|:---------------------------------:|
-| <img src="docs/img/camera-interposer-populated.png" alt="Populated interposer with camera lens centered in aperture" width="440"> | <img src="docs/img/camera-interposer-stackup.png" alt="Approximate Camera Module 2 board mounted below the interposer, with lens through aperture" width="440"> |
+| <img src="docs/img/camera-interposer-populated.png" alt="Populated camera interposer" width="440"> | <img src="docs/img/camera-interposer-stackup.png" alt="Illustrative Camera Module 3 Standard and interposer stackup" width="440"> |
 
-The camera board and lens in the stackup are outline-based approximations, not
-a vendor STEP model; verify the physical camera revision and FFC clearances.
+The Camera Module 3 Standard board and autofocus lens are drawing-based
+approximations, not vendor STEP models. The fit-check image makes the inferred
+6.25 mm aperture offset visible; verify against a physical camera before
+changing the PCB.
+
+<img src="docs/img/camera-module-3-fit-check.png" alt="Top-down Camera Module 3 Standard alignment fit check; the reconstructed lens axis is offset from the interposer aperture" width="600">
 
 ### How the cables run
 

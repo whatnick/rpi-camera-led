@@ -39,9 +39,28 @@ TMP = HW.parent / "tmp"
 SHAPES = HW / "rpi-camera-led.3dshapes"
 
 from kicad_cli import KICAD_CLI
-# kicad-cli does not inherit the GUI's path substitutions, so the models
-# resolve to nothing unless this is handed to it explicitly.
-MODEL_DIR = "/snap/kicad/current/usr/share/kicad/3dmodels"
+
+
+def find_model_dir():
+    """Find KiCad's stock STEP library for CLI renders on any supported OS."""
+    candidates = [
+        os.environ.get("KICAD10_3DMODEL_DIR"),
+        os.environ.get("KICAD9_3DMODEL_DIR"),
+        str(Path(KICAD_CLI).resolve().parent.parent / "share" / "kicad" / "3dmodels"),
+        "/snap/kicad/current/usr/share/kicad/3dmodels",
+        "/usr/share/kicad/3dmodels",
+        "/Applications/KiCad/KiCad.app/Contents/SharedSupport/3dmodels",
+    ]
+    for candidate in candidates:
+        if candidate and Path(candidate).is_dir():
+            return candidate
+    raise FileNotFoundError(
+        "KiCad 3D model library not found; set KICAD9_3DMODEL_DIR or "
+        "KICAD10_3DMODEL_DIR"
+    )
+
+
+MODEL_DIR = find_model_dir()
 
 # The three README panels sit side by side, so they are given a common aspect
 # ratio: the SVG's page is whatever KiCad's "board area only" mode computes,
@@ -101,7 +120,9 @@ def render(out, extra, size, zoom, board):
     r = run([KICAD_CLI, "pcb", "render", "-o", str(out),
              "--width", str(w), "--height", str(h), "--quality", "high",
              "--background", "opaque", "--zoom", zoom,
-             "-D", f"KICAD9_3DMODEL_DIR={MODEL_DIR}", *extra, str(board)])
+             "-D", f"KICAD9_3DMODEL_DIR={MODEL_DIR}",
+             "-D", f"KICAD10_3DMODEL_DIR={MODEL_DIR}",
+             *extra, str(board)])
     print(f"{out.relative_to(HW.parent)}  "
           f"({out.stat().st_size // 1024} KiB, {w} x {h} px)")
     return r

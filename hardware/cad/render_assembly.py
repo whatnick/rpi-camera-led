@@ -19,7 +19,7 @@ def material(name, color, metallic=0.0, roughness=0.4, alpha=1.0):
     bsdf.inputs["Metallic"].default_value = metallic
     bsdf.inputs["Roughness"].default_value = roughness
     if alpha < 1.0:
-        mat.blend_method = "BLEND"
+        mat.surface_render_method = "BLENDED"
         bsdf.inputs["Alpha"].default_value = alpha
     return mat
 
@@ -33,8 +33,10 @@ materials = {
     "ComponentsMOSFET": material("MOSFET package", (0.1, 0.12, 0.14)),
     "ComponentsPassives": material("Passive component bodies", (0.7, 0.66, 0.53)),
     "CameraModule": material("Camera module PCB", (0.1, 0.24, 0.45)),
-    "LensHolder": material("Lens barrel", (0.025, 0.03, 0.045), roughness=0.2),
-    "LensGlass": material("Lens glass", (0.04, 0.16, 0.26), metallic=0.4, roughness=0.12),
+    "AutofocusActuator": material("Autofocus actuator", (0.19, 0.2, 0.23), roughness=0.3),
+    "LensHolder": material("Autofocus lens barrel", (0.025, 0.03, 0.045), roughness=0.2),
+    "LensGlass": material("Autofocus lens glass", (0.04, 0.16, 0.26), metallic=0.4, roughness=0.12),
+    "CameraFFCConnector": material("Camera FFC connector", (0.79, 0.76, 0.65)),
     "Spacer": material("Mounting standoffs", (0.38, 0.42, 0.48), metallic=0.75),
     "FFC": material("Flexible ribbon cables", (0.67, 0.48, 0.21), metallic=0.15),
 }
@@ -124,6 +126,19 @@ target = Vector((32.5, -31.9, -1.5))
 camera.rotation_euler = (target - camera.location).to_track_quat("-Z", "Y").to_euler()
 camera_data.ortho_scale = 90
 scene.render.filepath = str(OUTPUT.with_name(OUTPUT.name + "-stackup.png"))
+bpy.ops.render.render(write_still=True)
+
+interposer = bpy.data.objects.get("Interposer")
+if interposer is None:
+    raise RuntimeError("Interposer board mesh is missing")
+fit_material = material("Translucent interposer for camera fit check", (0.07, 0.28, 0.42), alpha=0.22)
+interposer.data.materials.clear()
+interposer.data.materials.append(fit_material)
+camera.location = (32.5, -31.9, 145)
+target = Vector((32.5, -31.9, -2.0))
+camera.rotation_euler = (target - camera.location).to_track_quat("-Z", "Y").to_euler()
+camera_data.ortho_scale = 58
+scene.render.filepath = str(OUTPUT.with_name(OUTPUT.name + "-camera-module-3-fit-check.png"))
 bpy.ops.render.render(write_still=True)
 
 camera.location = (70, -90, -45)
