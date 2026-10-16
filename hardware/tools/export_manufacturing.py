@@ -47,8 +47,10 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     zpath = OUT / "manufacturing.zip"
     incomplete_marker = OUT / "NOT_FOR_FABRICATION.txt"
+    assembly_marker = OUT / "ASSEMBLY_BOM_INCOMPLETE.txt"
     zpath.unlink(missing_ok=True)
     incomplete_marker.unlink(missing_ok=True)
+    assembly_marker.unlink(missing_ok=True)
     drc_json = OUT / "drc.json"
     run("pcb", "drc", "--format", "json", "-o", drc_json, PCB)
     report = json.loads(drc_json.read_text(encoding="utf-8"))
@@ -78,17 +80,24 @@ def main():
         "--exclude-dnp", "-o", pos, PCB)
     bom_raw = OUT / "bom_raw.csv"
     run("sch", "export", "bom", "--fields",
-        "Reference,Value,Footprint,${QUANTITY},MPN,LCSC,${DNP}",
-        "--labels", "Reference,Value,Footprint,Qty,MPN,LCSC,DNP",
+        "Reference,Value,Footprint,${QUANTITY},Manufacturer,MPN,LCSC,DigiKey,Mouser,Description,${DNP}",
+        "--labels", "Reference,Value,Footprint,Qty,Manufacturer,MPN,LCSC,DigiKey,Mouser,Description,DNP",
         "--group-by", "Value,Footprint,MPN", "--ref-range-delimiter", "",
         "-o", bom_raw, SCH)
 
     missing = []
+    missing_mpn = []
     bom = OUT / "bom_jlcpcb.csv"
-    with open(bom_raw, newline="") as f, open(bom, "w", newline="") as g:
+    sourced_bom = OUT / "bom_sourced.csv"
+    with open(bom_raw, newline="") as f, open(bom, "w", newline="") as g, \
+            open(sourced_bom, "w", newline="") as sourced:
+        rows = csv.DictReader(f)
         w = csv.writer(g)
+        ws = csv.writer(sourced)
         w.writerow(["Comment", "Designator", "Footprint", "LCSC Part #", "MPN"])
-        for r in csv.DictReader(f):
+        ws.writerow(["Designator", "Qty", "Value", "Footprint", "Manufacturer",
+                     "MPN", "LCSC Part #", "DigiKey", "Mouser", "Description"])
+        for r in rows:
             if r["DNP"].strip().lower() in ("dnp", "1", "true"):
                 continue
             if not r["Reference"] or r["Reference"].startswith("#"):
@@ -99,8 +108,25 @@ def main():
                 lcsc = match.group(1) if match else ""
             w.writerow([r["Value"], r["Reference"].replace(" ", ""),
                         r["Footprint"].split(":")[-1], lcsc, r["MPN"]])
+            ws.writerow([r["Reference"].replace(" ", ""), r["Qty"], r["Value"],
+                         r["Footprint"], r["Manufacturer"], r["MPN"], lcsc,
+                         r["DigiKey"], r["Mouser"], r["Description"]])
             if not lcsc:
                 missing.append(r["Reference"])
+            if not r["MPN"].strip():
+                missing_mpn.append(r["Reference"])
+
+    if missing or missing_mpn:
+        details = []
+        if missing:
+            details.append(
+                "No LCSC part number for: " + ", ".join(missing)
+                + ". The board Gerbers are complete, but this BOM cannot be "
+                "used for LCSC/JLCPCB assembly as-is."
+            )
+        if missing_mpn:
+            details.append("No manufacturer part number for: " + ", ".join(missing_mpn) + ".")
+        assembly_marker.write_text("\n".join(details) + "\n", encoding="utf-8")
 
     if args.allow_incomplete and (errors or unconnected):
         (OUT / "NOT_FOR_FABRICATION.txt").write_text(
@@ -114,13 +140,20 @@ def main():
             z.write(p, f"gerbers/{p.name}")
         z.write(pos, pos.name)
         z.write(bom, bom.name)
+        z.write(sourced_bom, sourced_bom.name)
         z.write(drc_json, drc_json.name)
         if incomplete_marker.exists():
             z.write(incomplete_marker, incomplete_marker.name)
+        if assembly_marker.exists():
+            z.write(assembly_marker, assembly_marker.name)
 
-    print(f"wrote {zpath}, {pos}, {bom}")
+    print(f"wrote {zpath}, {pos}, {bom}, {sourced_bom}")
     if missing:
         print(f"WARNING: no LCSC number for: {', '.join(missing)}")
+    if missing_mpn:
+        print(f"ERROR: no MPN for: {', '.join(missing_mpn)}", file=sys.stderr)
+        return 1
+    if missing:
         return 1
     return 0
 

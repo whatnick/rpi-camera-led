@@ -18,15 +18,14 @@ Rendering a stale pour is worse than not rendering at all, because it looks
 authoritative -- when this was first written the stored B.Cu pour was less
 than half its true area.
 
-The 3D views are deliberately zoomed out far enough to include every
-footprint, not just the ones inside the board outline -- eleven parts are
-still sitting off the board while the layout is in progress, and cropping
-them out of the README would make the board look more finished than it is.
+The board views leave margin around the outline and include the fitted
+components, connectors, mounting holes and lens aperture.
 
 Usage (from the repository root):
     uv run hardware/tools/render_board.py [--no-refill]
 """
 
+import os
 import re
 import shutil
 import subprocess
@@ -49,7 +48,7 @@ MODEL_DIR = "/snap/kicad/current/usr/share/kicad/3dmodels"
 # and the 3D renders are widened to match it.  Deriving the width instead of
 # hardcoding it keeps them matched if the board outline changes.
 HEIGHT = 1500
-ZOOM = "0.45"  # fits the off-board footprints too; see the note above
+ZOOM = "0.45"
 LAYERS = "F.Cu,B.Cu,F.SilkS,Edge.Cuts"
 
 # The cable stubs run 22mm out of each connector, so these views have to pull
@@ -78,8 +77,15 @@ def run(args, **kw):
 
 def refill_zones():
     """Bring the stored copper pours back in step with the board."""
-    r = subprocess.run([str(HW / "tools" / "run_in_kicad.sh"), "python3",
-                        str(HW / "tools" / "refill_zones.py")],
+    if os.name == "nt":
+        python = Path(KICAD_CLI).with_name("python.exe")
+        if not python.exists():
+            raise FileNotFoundError(f"KiCad Python not found beside {KICAD_CLI}")
+        command = [str(python), str(HW / "tools" / "refill_zones.py")]
+    else:
+        command = [str(HW / "tools" / "run_in_kicad.sh"), "python3",
+                   str(HW / "tools" / "refill_zones.py")]
+    r = subprocess.run(command,
                        capture_output=True, text=True)
     if r.returncode != 0:
         print("could not refill zones (rendering the stored fill instead):",

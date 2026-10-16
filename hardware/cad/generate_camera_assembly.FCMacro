@@ -1,0 +1,94 @@
+from pathlib import Path
+
+import FreeCAD as App
+import MeshPart
+import Part
+
+ROOT = Path(__file__).resolve().parents[2]
+INPUT_STEP = ROOT / "tmp" / "manufacturing" / "rpi-camera-led.step"
+BOARD_STEP = ROOT / "tmp" / "manufacturing" / "rpi-camera-led-board.step"
+OUT = ROOT / "tmp" / "cad"
+OUT.mkdir(parents=True, exist_ok=True)
+
+doc = App.newDocument("RpiCameraLedAssembly")
+board_shape = Part.read(str(INPUT_STEP))
+board_outline_shape = Part.read(str(BOARD_STEP))
+board_box = board_outline_shape.BoundBox
+print("Interposer board substrate bounds:", board_box)
+
+interposer = doc.addObject("PartDesign::Feature", "Interposer")
+interposer.Label = "RPI Camera LED interposer (KiCad STEP)"
+interposer.Shape = board_shape
+
+board_bottom = board_box.ZMin
+camera_top = board_bottom - 5.0
+camera_bottom = camera_top - 1.2
+cx, cy = 32.5, -31.931
+holes = [(22.0, -25.681), (43.0, -25.681),
+         (22.0, -38.181), (43.0, -38.181)]
+
+camera_plate = Part.makeBox(
+    25.0, 24.0, 1.2, App.Vector(20.0, cy - 12.0, camera_bottom)
+)
+for x, y in holes:
+    bore = Part.makeCylinder(1.1, 1.4, App.Vector(x, y, camera_bottom - 0.1))
+    camera_plate = camera_plate.cut(bore)
+camera = doc.addObject("PartDesign::Feature", "CameraModule")
+camera.Label = "Camera Module 2 PCB (approx. 25 x 24 mm)"
+camera.Shape = camera_plate
+
+lens_holder = doc.addObject("PartDesign::Feature", "LensHolder")
+lens_holder.Label = "Camera lens barrel (approximate)"
+lens_holder.Shape = Part.makeCylinder(4.3, 8.2, App.Vector(cx, cy, camera_top))
+
+lens_glass = doc.addObject("PartDesign::Feature", "LensGlass")
+lens_glass.Label = "Camera lens front element (approximate)"
+lens_glass.Shape = Part.makeCylinder(3.8, 0.2, App.Vector(cx, cy, camera_top + 8.2))
+
+for index, (x, y) in enumerate(holes, 1):
+    spacer_shape = Part.makeCylinder(1.6, 5.0, App.Vector(x, y, camera_top)).cut(
+        Part.makeCylinder(1.1, 5.2, App.Vector(x, y, camera_top - 0.1))
+    )
+    spacer = doc.addObject("PartDesign::Feature", f"Spacer{index}")
+    spacer.Label = f"M2 camera standoff {index} (approximate)"
+    spacer.Shape = spacer_shape
+
+camera_cable = doc.addObject("PartDesign::Feature", "CameraFFC")
+camera_cable.Label = "Camera FFC path (approximate, routed beneath interposer)"
+camera_cable.Shape = (
+    Part.makeBox(14.4, 15.0, 0.35, App.Vector(41.6, cy - 7.5, camera_bottom - 1.0))
+    .fuse(Part.makeBox(0.35, 15.0, 9.6,
+                       App.Vector(56.0, cy - 7.5, camera_bottom - 1.0)))
+    .fuse(Part.makeBox(2.75, 15.0, 0.35,
+                       App.Vector(53.6, cy - 7.5, board_bottom + 2.0)))
+)
+
+pi_cable = doc.addObject("PartDesign::Feature", "PiFFC")
+pi_cable.Label = "Raspberry Pi FFC path (illustrative)"
+pi_cable.Shape = Part.makeBox(
+    12.0, 15.0, 0.35, App.Vector(-2.5, cy - 7.5, board_bottom + 1.8)
+)
+
+doc.recompute()
+doc.saveAs(str(OUT / "rpi-camera-led-assembly.FCStd"))
+Part.export(
+    [interposer, camera, lens_holder, lens_glass]
+    + [doc.getObject(f"Spacer{i}") for i in range(1, 5)]
+    + [camera_cable, pi_cable],
+    str(OUT / "rpi-camera-led-assembly.step"),
+)
+
+objects = [
+    interposer, camera, lens_holder, lens_glass,
+    *[doc.getObject(f"Spacer{i}") for i in range(1, 5)],
+    camera_cable, pi_cable,
+]
+for obj in objects:
+    mesh = MeshPart.meshFromShape(
+        Shape=obj.Shape, LinearDeflection=0.08, AngularDeflection=0.15,
+        Relative=False,
+    )
+    mesh.write(str(OUT / f"{obj.Name}.stl"))
+
+print("Assembly written to", OUT)
+App.closeDocument(doc.Name)
