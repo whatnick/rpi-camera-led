@@ -119,7 +119,7 @@ def place(board):
     positions = {
         "J1": (13.0, 31.931, -90),
         "J2": (52.0, 31.931, 90),
-        "J3": (17.5, 50.5, 180),
+        "J3": (17.5, 53.7, 180),
         "J4": (47.0, 49.0, 90),
         "U1": (32.5, 50.5, 180),
         "D1": (23.0, 19.5, 90),
@@ -160,6 +160,7 @@ def place(board):
         "R2": (40.5, 55.0),
         "C1": (23.5, 52.0),
         "C2": (23.5, 56.5),
+        "J3": (12.5, 53.7),
     }
     for ref, position in reference_positions.items():
         reference = board.FindFootprintByReference(ref).Reference()

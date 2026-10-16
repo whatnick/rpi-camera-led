@@ -2,8 +2,8 @@
 # requires-python = ">=3.11"
 # dependencies = []
 # ///
-"""Verify hardware/rpi-camera-led.kicad_pcb: the connectors stay aligned so the
-pass-through bus can route straight, and the board still matches the schematic.
+"""Verify the FFC connectors stay aligned, J3 faces the board edge, and the
+board still matches the schematic and Camera Module 2 mounting pattern.
 
 The J1/J2 alignment is easy to lose to a stray drag and expensive to notice --
 a 0.05mm slip puts a dogleg in all fifteen nets -- so it is checked as a number
@@ -96,6 +96,22 @@ def mounting_holes(text):
     return out
 
 
+def footprint_locations(text):
+    """reference -> (x, y, angle) in board coordinates."""
+    out = {}
+    for m in re.finditer(r'\(footprint "([^"]+)"', text):
+        block = text[m.start():sexp_end(text, m.start())]
+        ref = re.search(r'\(property "Reference" "([^"]*)"', block)
+        at = re.search(r"\(at ([-\d.]+) ([-\d.]+)(?: ([-\d.]+))?\)", block)
+        if ref and at:
+            out[ref.group(1)] = (
+                float(at.group(1)),
+                float(at.group(2)),
+                float(at.group(3) or 0),
+            )
+    return out
+
+
 def board_centre_x(text):
     xs = []
     for m in re.finditer(r"\(gr_\w+\b", text):
@@ -145,7 +161,31 @@ def main():
             ok = False
             print(f"  NOT MIRRORED: differ by {abs(d1 - d2):.4f} mm")
 
-    # 3. The camera's mounting pattern is still present and still correct.
+    # 3. The Qwiic cable entry faces outward at the lower board edge.
+    loc = footprint_locations(text).get("J3")
+    expected_loc = (17.5, 53.7, 180.0)
+    if loc is None:
+        ok = False
+        print("Qwiic connector J3 is missing")
+    else:
+        error = max(abs(a - b) for a, b in zip(loc, expected_loc))
+        print(f"Qwiic J3 placement: {loc[0]:.3f}, {loc[1]:.3f} mm at {loc[2]:.1f}°")
+        if error > TOL:
+            ok = False
+            print("  WRONG EDGE ORIENTATION: expected (17.5, 53.7) mm at 180°")
+        expected_pads = {
+            "1": (19.0, 51.7),
+            "2": (18.0, 51.7),
+            "3": (17.0, 51.7),
+            "4": (16.0, 51.7),
+        }
+        for number, expected in expected_pads.items():
+            actual = fps.get("J3", {}).get(number, [])
+            if len(actual) != 1 or max(abs(a - b) for a, b in zip(actual[0], expected)) > TOL:
+                ok = False
+                print(f"  WRONG J3.{number} pad position: expected {expected}, found {actual}")
+
+    # 4. The camera's mounting pattern is still present and still correct.
     holes = mounting_holes(text)
     print(f"mounting holes: {len(holes)}")
     if len(holes) != 4:
@@ -168,7 +208,7 @@ def main():
             ok = False
             print(f"  WRONG DRILL: expected {MH_DRILL} mm, found {sorted(drills)}")
 
-    # 4. Board still matches the schematic, and report the DRC tally.
+    # 5. Board still matches the schematic, and report the DRC tally.
     rpt = HW / "drccheck.json"
     subprocess.run([KICAD_CLI, "pcb", "drc", "--format", "json",
                     "-o", str(rpt), str(PCB)], capture_output=True, text=True)

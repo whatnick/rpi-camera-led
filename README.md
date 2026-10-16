@@ -31,6 +31,10 @@ RPI-CAM-V2_1). The wider outline clears the connectors while allowing the
 interposer to mount over the camera; the 6.05 mm-radius two-layer copper
 keepout around the lens opening preserves copper-to-aperture edge clearance.
 `check_pcb.py` asserts connector alignment and mounting-hole pitch/drill.
+The 4-pin Qwiic/JST-SH connector (J3) is also edge-facing, with its cable entry
+at the lower board edge (J3 at x=17.5 mm, y=53.7 mm, rotated 180°) so the plug
+can be inserted without obstructing the camera or its flex. `check_pcb.py`
+asserts this edge orientation and the J3 pad map as well as the FFC alignment.
 
 **Routing and design checks pass:** KiCad DRC reports zero violations and
 zero unconnected items, schematic ERC is clean, and the netlist matches the
@@ -61,6 +65,13 @@ still need to be added and audited.
 The approximate camera/interposer stack model and test-render instructions are
 in [hardware/cad/README.md](hardware/cad/README.md). Its camera PCB, standoffs,
 lens, and FFCs are illustrative rather than vendor-accurate.
+
+| Populated interposer | Camera/interposer stackup concept |
+|:--------------------:|:---------------------------------:|
+| <img src="docs/img/camera-interposer-populated.png" alt="Populated interposer with camera lens centered in aperture" width="440"> | <img src="docs/img/camera-interposer-stackup.png" alt="Approximate Camera Module 2 board mounted below the interposer, with lens through aperture" width="440"> |
+
+The camera board and lens in the stackup are outline-based approximations, not
+a vendor STEP model; verify the physical camera revision and FFC clearances.
 
 ### How the cables run
 
