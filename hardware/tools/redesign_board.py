@@ -2,7 +2,7 @@
 # requires-python = ">=3.11"
 # dependencies = []
 # ///
-"""Place the camera interposer for the preserved Camera Module 2 hole pattern.
+"""Place the camera interposer for the supplied Raspberry Pi Camera v3 model.
 
 Run with KiCad's Python from the repository root. The script updates pad nets
 from the schematic, resets the existing copper, and creates the widened board
@@ -122,11 +122,11 @@ def place(board):
         "J3": (17.5, 53.7, 180),
         "J4": (47.0, 49.0, 90),
         "U1": (32.5, 50.5, 180),
-        "D1": (23.0, 19.5, 90),
-        "D2": (42.0, 19.5, 90),
+        "D1": (23.0, 25.5, 90),
+        "D2": (42.0, 25.5, 90),
         "Q2": (32.5, 19.5, 90),
-        "R3": (27.5, 19.5, 0),
-        "R4": (37.5, 19.5, 0),
+        "R3": (27.5, 25.5, 0),
+        "R4": (37.5, 25.5, 0),
         "Q1": (41.0, 47.0, 0),
         "R5": (37.5, 47.0, 0),
         "R8": (41.0, 50.0, 0),
@@ -144,16 +144,27 @@ def place(board):
             raise RuntimeError(f"missing footprint {ref}")
         footprint.SetPosition(point(x, y))
         footprint.SetOrientationDegrees(rotation)
+    camera_holes = {
+        "H1": (22.5, 19.431),
+        "H2": (22.5, 31.931),
+        "H3": (42.5, 19.431),
+        "H4": (42.5, 31.931),
+    }
+    for ref, (x, y) in camera_holes.items():
+        footprint = board.FindFootprintByReference(ref)
+        if footprint is None:
+            raise RuntimeError(f"missing camera mounting-hole footprint {ref}")
+        footprint.SetPosition(point(x, y))
     board.FindFootprintByReference("R6").SetValue("10k")
     board.FindFootprintByReference("R7").SetValue("10k")
     board.FindFootprintByReference("R3").SetValue("47R")
     board.FindFootprintByReference("R4").SetValue("47R")
     reference_positions = {
-        "D1": (23.0, 16.5),
-        "R3": (27.5, 16.5),
+        "D1": (23.0, 22.5),
+        "R3": (27.5, 22.5),
         "Q2": (32.5, 16.5),
-        "R4": (37.5, 16.5),
-        "D2": (42.0, 16.5),
+        "R4": (37.5, 22.5),
+        "D2": (42.0, 22.5),
         "R7": (35.0, 42.7),
         "R8": (43.5, 50.0),
         "R1": (40.5, 52.0),
@@ -205,8 +216,8 @@ def main():
 
     pcbnew.SaveBoard(str(PCB), board)
     print(f"Updated {PCB}")
-    print("Board outline: 46 x 43 mm; lens aperture Ø11 mm; camera mounting holes "
-          "retained at 21 x 12.5 mm.")
+    print("Board outline: 46 x 43 mm; lens aperture Ø11 mm; Raspberry Pi Camera v3 "
+          "mounting holes at 20 x 12.5 mm.")
     print(f"Placement: {len(list(board.GetFootprints()))} footprints; "
           f"{len(list(board.GetTracks()))} tracks; route all nets after placement.")
 

@@ -31,10 +31,10 @@ set `KICAD9_3DMODEL_DIR` or `KICAD10_3DMODEL_DIR` to override them.
 The supplied 3MF is titled `Raspberry Pi Camera v3`; its mesh measures
 25 x 24 mm in plan and places the lens axis at its XY origin. Its mounting
 holes appear at 20 x 12.5 mm pitch, with the pattern center 6.25 mm from the
-lens axis. The assembly aligns the model's 20 mm hole-pattern center to the
-interposer centerline and 12.5 mm rows to the existing holes; the interposer
-has 21 mm X pitch, leaving a 0.5 mm per-hole horizontal mismatch. Consequently
-the lens axis is 6.25 mm off the interposer aperture. The fit-check is a
-drawing/model-based comparison, not physical verification; confirm the
-camera's exact revision and mounting-hole dimensions before changing the
-routed board. The Raspberry Pi FFC path remains illustrative.
+lens axis. The assembly keeps the optical axis on the interposer aperture
+center and places the four holes at the model's coordinates, matching its
+20 x 12.5 mm pitch. The hole pattern is consequently offset 6.25 mm from the
+optical axis; the relocated pattern and shifted LED row are included in the
+routed PCB. The fit-check is model-based, not physical verification; confirm
+the camera's exact revision and mounting-hole dimensions before fabrication.
+The Raspberry Pi FFC path remains illustrative.
